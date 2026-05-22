@@ -43,18 +43,14 @@ router.post("/", async (req, res) => {
 // Get Budget
 router.get("/:month/:year", async (req, res) => {
   try {
-    const { month, year } = req.params;
-
     const result = await pool.query(
-      "SELECT * FROM budgets WHERE month=$1 AND year=$2",
-      [month, year]
+      "SELECT * FROM budget"
     );
 
-    res.json(result.rows[0] || {});
+    res.json(result.rows);
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).send("Server Error");
   }
 });
-
 module.exports = router;
