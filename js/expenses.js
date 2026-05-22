@@ -61,7 +61,7 @@ async function addExpense() {
     ).value;
 
   if (
-    !category ||
+
     !amount ||
     !category ||
     !expense_date
@@ -177,10 +177,7 @@ async function renderExpenses() {
             ${exp.category}
           </td>
 
-          <td class="py-4 px-4">
-            ${exp.category}
-          </td>
-
+         
           <td class="py-4 px-4 text-right font-semibold text-gray-900">
             ₹${Number(
               exp.amount
