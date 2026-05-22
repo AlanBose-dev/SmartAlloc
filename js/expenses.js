@@ -38,9 +38,9 @@ function bindExpenseForm() {
 // Add Expense
 async function addExpense() {
 
-  const title =
+  const category =
     document.getElementById(
-      "expense-title"
+      "expense-category"
     ).value.trim();
 
   const amount =
@@ -64,7 +64,7 @@ async function addExpense() {
     ).value;
 
   if (
-    !title ||
+    !category ||
     !amount ||
     !category ||
     !expense_date
@@ -90,7 +90,6 @@ async function addExpense() {
 
       body: JSON.stringify({
 
-        title,
         category,
         amount,
         expense_date,
@@ -178,7 +177,7 @@ async function renderExpenses() {
           </td>
 
           <td class="py-4 px-4 font-medium text-gray-900">
-            ${exp.title}
+            ${exp.category}
           </td>
 
           <td class="py-4 px-4">
