@@ -168,8 +168,7 @@ async function renderExpenses() {
 
     expenses.forEach(exp => {
 
-      total +=
-        Number(exp.amount);
+      total += Number(exp.amount);
 
       tbody.innerHTML += `
 
@@ -191,10 +190,7 @@ async function renderExpenses() {
 
           <td class="py-4 px-4 text-right font-semibold text-gray-900">
 
-            ₹${Number(
-              exp.amount
-            ).toFixed(2)}
-
+           ₹${Number(exp.amount).toFixed(2)}
           </td>
 
           <td class="py-4 px-4 text-center">
