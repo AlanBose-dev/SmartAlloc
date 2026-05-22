@@ -1,201 +1,320 @@
-// reports.js — FULL & FINAL
+const API_URL = "http://localhost:5000/api/reports";
 
 let expenseChartInstance = null;
 let trendChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderReports();
+  loadReports();
 });
 
-function getData() {
-  const raw = localStorage.getItem("budgetPlannerData");
-  if (!raw) {
-    return { income: [], expenses: [] };
+// Load Reports
+async function loadReports() {
+
+  try {
+
+    // Fetch Income
+    const incomeRes = await fetch(
+      `${API_URL}/income`
+    );
+
+    const incomeData =
+      await incomeRes.json();
+
+    // Fetch Expenses
+    const expenseRes = await fetch(
+      `${API_URL}/expenses`
+    );
+
+    const expenseData =
+      await expenseRes.json();
+
+    updateSummaryCards(
+      incomeData,
+      expenseData
+    );
+
+    renderExpenseDistribution(
+      expenseData
+    );
+
+    renderIncomeVsExpense(
+      incomeData,
+      expenseData
+    );
+
+    renderBreakdownTable(
+      expenseData
+    );
+
+  } catch (error) {
+
+    console.log(error);
+
   }
-  return JSON.parse(raw);
+
 }
 
-function renderReports() {
-  const data = getData();
+// Summary Cards
+function updateSummaryCards(
+  income,
+  expenses
+) {
 
-  updateSummaryCards(data.income, data.expenses);
-  renderExpenseDistribution(data.expenses);
-  renderIncomeVsExpense(data.income, data.expenses);
-  renderBreakdownTable(data.expenses);
+  const totalIncome =
+    income.reduce(
+      (sum, item) =>
+        sum + Number(item.amount),
+      0
+    );
+
+  const totalExpense =
+    expenses.reduce(
+      (sum, item) =>
+        sum + Number(item.amount),
+      0
+    );
+
+  const savings =
+    totalIncome - totalExpense;
+
+  document.getElementById(
+    "reportsTotalIncome"
+  ).textContent =
+    `₹${totalIncome.toLocaleString()}`;
+
+  document.getElementById(
+    "reportsTotalExpenses"
+  ).textContent =
+    `₹${totalExpense.toLocaleString()}`;
+
+  document.getElementById(
+    "reportsNetSavings"
+  ).textContent =
+    `₹${savings.toLocaleString()}`;
 }
 
+// Expense Distribution Chart
+function renderExpenseDistribution(
+  expenses
+) {
 
-function updateSummaryCards(income, expenses) {
-  const totalIncome = income.reduce((sum, i) => sum + Number(i.amount), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const savings = totalIncome - totalExpenses;
+  const canvas =
+    document.getElementById(
+      "expenseChart"
+    );
 
-  const incomeEl = document.getElementById("reportsTotalIncome");
-  const expenseEl = document.getElementById("reportsTotalExpenses");
-  const savingsEl = document.getElementById("reportsNetSavings");
-
-  if (incomeEl) incomeEl.textContent = `₹${totalIncome.toLocaleString()}`;
-  if (expenseEl) expenseEl.textContent = `₹${totalExpenses.toLocaleString()}`;
-  if (savingsEl) savingsEl.textContent = `₹${savings.toLocaleString()}`;
-}
-
-/* ==============================
-   EXPENSE DISTRIBUTION (DONUT)
-================================ */
-function renderExpenseDistribution(expenses) {
-  const canvas = document.getElementById("expenseChart");
   if (!canvas) return;
 
-  const ctx = canvas.getContext("2d");
+  const ctx =
+    canvas.getContext("2d");
 
-  // Destroy old chart if exists
   if (expenseChartInstance) {
     expenseChartInstance.destroy();
   }
 
   if (expenses.length === 0) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     return;
   }
 
-  // Group expenses by category
   const categoryMap = {};
-  expenses.forEach((e) => {
-    categoryMap[e.category] =
-      (categoryMap[e.category] || 0) + Number(e.amount);
+
+  expenses.forEach(item => {
+
+    categoryMap[item.category] =
+      (categoryMap[item.category] || 0)
+      + Number(item.amount);
+
   });
 
-  const labels = Object.keys(categoryMap);
-  const values = Object.values(categoryMap);
+  expenseChartInstance =
+    new Chart(ctx, {
 
-  const colors = [
-    "#3b82f6",
-    "#8b5cf6",
-    "#f59e0b",
-    "#22c55e",
-    "#ef4444",
-    "#9ca3af"
-  ];
+      type: "doughnut",
 
-  expenseChartInstance = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [
-        {
-          data: values,
-          backgroundColor: colors,
-          borderWidth: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "65%",
-      plugins: {
-        legend: {
-          position: "bottom"
-        }
+      data: {
+
+        labels:
+          Object.keys(categoryMap),
+
+        datasets: [
+          {
+            data:
+              Object.values(categoryMap),
+
+            backgroundColor: [
+              "#3b82f6",
+              "#8b5cf6",
+              "#f59e0b",
+              "#22c55e",
+              "#ef4444",
+              "#9ca3af"
+            ]
+          }
+        ]
+      },
+
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
       }
-    }
-  });
+
+    });
+
 }
 
-/* ==============================
-   INCOME VS EXPENSE (BAR)
-================================ */
-function renderIncomeVsExpense(income, expenses) {
-  const canvas = document.getElementById("trendChart");
+// Income vs Expense Chart
+function renderIncomeVsExpense(
+  income,
+  expenses
+) {
+
+  const canvas =
+    document.getElementById(
+      "trendChart"
+    );
+
   if (!canvas) return;
 
-  const ctx = canvas.getContext("2d");
+  const ctx =
+    canvas.getContext("2d");
 
-  // Destroy old chart if exists
   if (trendChartInstance) {
     trendChartInstance.destroy();
   }
 
-  const totalIncome = income.reduce((sum, i) => sum + Number(i.amount), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalIncome =
+    income.reduce(
+      (sum, item) =>
+        sum + Number(item.amount),
+      0
+    );
 
-  trendChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Income", "Expenses"],
-      datasets: [
-        {
-          label: "Amount",
-          data: [totalIncome, totalExpenses],
-          backgroundColor: ["#3b82f6", "#ef4444"],
-          borderRadius: 6
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
+  const totalExpense =
+    expenses.reduce(
+      (sum, item) =>
+        sum + Number(item.amount),
+      0
+    );
+
+  trendChartInstance =
+    new Chart(ctx, {
+
+      type: "bar",
+
+      data: {
+
+        labels: [
+          "Income",
+          "Expenses"
+        ],
+
+        datasets: [
+          {
+            data: [
+              totalIncome,
+              totalExpense
+            ],
+
+            backgroundColor: [
+              "#3b82f6",
+              "#ef4444"
+            ],
+
+            borderRadius: 8
+          }
+        ]
       },
-      plugins: {
-        legend: {
-          display: false
+
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
         }
       }
-    }
-  });
-}
-function renderBreakdownTable(expenses) {
-  const tableBody = document.getElementById("reportsBreakdownTable");
-  if (!tableBody) return;
 
-  tableBody.innerHTML = "";
+    });
+
+}
+
+// Breakdown Table
+function renderBreakdownTable(
+  expenses
+) {
+
+  const table =
+    document.getElementById(
+      "reportsBreakdownTable"
+    );
+
+  table.innerHTML = "";
 
   if (expenses.length === 0) {
-    tableBody.innerHTML = `
+
+    table.innerHTML = `
       <tr>
-        <td colspan="4" class="py-6 text-center text-gray-500">
-          No expense data available
+        <td colspan="4"
+          class="py-6 text-center text-gray-500">
+
+          No Expense Data
+
         </td>
       </tr>
     `;
+
     return;
   }
 
-  // Group expenses by category
   const categoryMap = {};
-  expenses.forEach((e) => {
-    categoryMap[e.category] =
-      (categoryMap[e.category] || 0) + Number(e.amount);
+
+  expenses.forEach(item => {
+
+    categoryMap[item.category] =
+      (categoryMap[item.category] || 0)
+      + Number(item.amount);
+
   });
 
-  const totalExpense = Object.values(categoryMap)
-    .reduce((sum, val) => sum + val, 0);
+  const totalExpense =
+    Object.values(categoryMap)
+      .reduce(
+        (sum, value) =>
+          sum + value,
+        0
+      );
 
-  Object.entries(categoryMap).forEach(([category, amount]) => {
-    const percent = ((amount / totalExpense) * 100).toFixed(1);
+  Object.entries(categoryMap)
+    .forEach(([category, amount]) => {
 
-    const row = document.createElement("tr");
-    row.className = "hover:bg-white/40 transition-colors border-b border-gray-100";
+      const percent =
+        (
+          amount /
+          totalExpense
+        ) * 100;
 
-    row.innerHTML = `
-      <td class="py-4 px-4 font-medium text-gray-900 capitalize">
-        ${category}
-      </td>
-      <td class="py-4 px-4 text-right font-medium text-gray-900">
-        ₹${amount.toLocaleString()}
-      </td>
-      <td class="py-4 px-4 text-right text-gray-600">
-        ${percent}%
-      </td>
-      <td class="py-4 px-4 text-right text-gray-400">
-        —
-      </td>
-    `;
+      table.innerHTML += `
+        <tr class="hover:bg-white/40 transition-colors border-b border-gray-100">
 
-    tableBody.appendChild(row);
-  });
+          <td class="py-4 px-4 font-medium text-gray-900">
+            ${category}
+          </td>
+
+          <td class="py-4 px-4 text-right font-medium text-gray-900">
+            ₹${amount.toLocaleString()}
+          </td>
+
+          <td class="py-4 px-4 text-right text-gray-600">
+            ${percent.toFixed(1)}%
+          </td>
+
+          <td class="py-4 px-4 text-right text-gray-400">
+            —
+          </td>
+
+        </tr>
+      `;
+    });
+
 }

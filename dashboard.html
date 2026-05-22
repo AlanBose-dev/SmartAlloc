@@ -484,10 +484,16 @@
                 sidebar.classList.add('-translate-x-full'); // Ensure hidden on mobile init
             }
         });
+        window.addEventListener(
+  "storage",
+  () => {
+    loadDashboard();
+  }
+);
     </script>
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/main.js"></script>
+
+<script src="js/dashboard.js"></script>
 
 
 </body>

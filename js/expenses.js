@@ -1,150 +1,243 @@
-document.addEventListener("DOMContentLoaded", () => {
-  renderExpenses();
-  bindExpenseForm();
-});
+const API_URL =
+  "http://localhost:5000/api/expenses";
 
-// ---------- Storage ----------
-function getData() {
-  return JSON.parse(localStorage.getItem("budgetPlannerData")) || {
-    income: [],
-    expenses: [],
-    budget: {},
-    savings: {}
-  };
-}
+// Start
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-function saveData(data) {
-  localStorage.setItem("budgetPlannerData", JSON.stringify(data));
-}
+    renderExpenses();
 
-// ---------- Bind form ----------
+    bindExpenseForm();
+
+  }
+);
+
+// Bind Form
 function bindExpenseForm() {
-  const form = document.getElementById("add-expense-form");
+
+  const form =
+    document.getElementById(
+      "add-expense-form"
+    );
+
   if (!form) return;
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    addExpense();
-  });
+  form.addEventListener(
+    "submit",
+    async (e) => {
+
+      e.preventDefault();
+
+      await addExpense();
+
+    }
+  );
 }
 
-// ---------- Add expense ----------
-function addExpense() {
-  const title = document.getElementById("expense-title").value.trim();
-  const amount = Number(document.getElementById("expense-amount").value);
-  const category = document.getElementById("expense-category").value;
-  const date = document.getElementById("expense-date").value;
-  const note = document.getElementById("expense-notes").value;
+// Add Expense
+async function addExpense() {
 
-  if (!title || !amount || !category || !date) {
-    alert("Please fill all required fields");
+  const title =
+    document.getElementById(
+      "expense-title"
+    ).value.trim();
+
+  const amount =
+    document.getElementById(
+      "expense-amount"
+    ).value;
+
+  const category =
+    document.getElementById(
+      "expense-category"
+    ).value;
+
+  const expense_date =
+    document.getElementById(
+      "expense-date"
+    ).value;
+
+  const notes =
+    document.getElementById(
+      "expense-notes"
+    ).value;
+
+  if (
+    !title ||
+    !amount ||
+    !category ||
+    !expense_date
+  ) {
+
+    alert(
+      "Please fill all fields"
+    );
+
     return;
   }
 
-  const data = getData();
+  try {
 
-  data.expenses.push({
-    id: Date.now(),
-    title,
-    amount,
-    category,
-    date,
-    note
-  });
+    await fetch(API_URL, {
 
-  saveData(data);
-  document.getElementById("add-expense-form").reset();
-  renderExpenses();
-}
+      method: "POST",
 
-// ---------- Render table ----------
-function renderExpenses() {
-  const data = getData();
-  const tbody = document.getElementById("expensesList");
-  const totalEl = document.getElementById("totalExpenses");
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
 
-  if (!tbody) return;
+      body: JSON.stringify({
 
-  tbody.innerHTML = "";
-  let total = 0;
+        title,
+        category,
+        amount,
+        expense_date,
+        notes
 
-  data.expenses.forEach(exp => {
-    total += exp.amount;
+      })
 
-    const tr = document.createElement("tr");
-    tr.className = "hover:bg-white/40 transition-colors border-b border-gray-100 group";
+    });
 
-    tr.innerHTML = `
-      <td class="py-4 px-4 text-gray-600">${formatDate(exp.date)}</td>
-      <td class="py-4 px-4 font-medium text-gray-900">${exp.title}</td>
-      <td class="py-4 px-4">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryBadge(exp.category)}">
-          ${formatCategory(exp.category)}
-        </span>
-      </td>
-      <td class="py-4 px-4 text-right text-gray-900 font-semibold">₹${exp.amount.toLocaleString()}</td>
-      <td class="py-4 px-4 text-center">
-        <div class="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onclick="deleteExpense(${exp.id})"
-            class="p-1.5 hover:bg-white rounded-md text-gray-400 hover:text-danger transition-colors">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </td>
-    `;
+    document
+      .getElementById(
+        "add-expense-form"
+      )
+      .reset();
 
-    tbody.appendChild(tr);
-  });
+    renderExpenses();
 
-  if (totalEl) {
-    totalEl.textContent = `₹${total.toLocaleString()}`;
-  }
+    localStorage.setItem(
+      "dashboardUpdated",
+      Date.now()
+    );
 
-  // Re-render icons
-  if (window.lucide) {
-    lucide.createIcons();
+  } catch (error) {
+
+    console.log(error);
+
   }
 }
 
-// ---------- Delete ----------
-function deleteExpense(id) {
-  const data = getData();
-  data.expenses = data.expenses.filter(e => e.id !== id);
-  saveData(data);
-  renderExpenses();
+// Render Expenses
+async function renderExpenses() {
+
+  try {
+
+    const response =
+      await fetch(API_URL);
+
+    const expenses =
+      await response.json();
+
+    const tbody =
+      document.getElementById(
+        "expensesList"
+      );
+
+    const totalEl =
+      document.getElementById(
+        "totalExpenses"
+      );
+
+    tbody.innerHTML = "";
+
+    let total = 0;
+
+    if (expenses.length === 0) {
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5"
+            class="py-6 text-center text-gray-500">
+
+            No Expenses Added
+
+          </td>
+        </tr>
+      `;
+
+      totalEl.textContent =
+        "₹0";
+
+      return;
+    }
+
+    expenses.forEach(exp => {
+
+      total += Math.round(Number(exp.amount));
+
+      tbody.innerHTML += `
+        <tr class="hover:bg-white/40 transition-colors border-b border-gray-100">
+
+          <td class="py-4 px-4 text-gray-600">
+            ${new Date(
+              exp.expense_date
+            ).toLocaleDateString()}
+          </td>
+
+          <td class="py-4 px-4 font-medium text-gray-900">
+            ${exp.title}
+          </td>
+
+          <td class="py-4 px-4">
+            ${exp.category}
+          </td>
+
+          <td class="py-4 px-4 text-right font-semibold text-gray-900">
+            ₹${Number(
+              exp.amount
+            ).toFixed(2)}
+          </td>
+
+          <td class="py-4 px-4 text-center">
+
+            <button
+              onclick="deleteExpense(${exp.id})"
+              class="text-red-500 hover:text-red-700">
+
+              Delete
+
+            </button>
+
+          </td>
+
+        </tr>
+      `;
+    });
+
+    totalEl.textContent =
+  `₹${total.toFixed(2)}`;
+  } catch (error) {
+
+    console.log(error);
+
+  }
 }
 
-// ---------- Helpers ----------
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
-}
+// Delete Expense
+async function deleteExpense(id) {
 
-function formatCategory(cat) {
-  const map = {
-    food: "Food & Dining",
-    travel: "Travel",
-    rent: "Rent",
-    bills: "Bills",
-    education: "Education",
-    entertainment: "Entertainment",
-    others: "Others"
-  };
-  return map[cat] || cat;
-}
+  try {
 
-function categoryBadge(cat) {
-  const map = {
-    food: "bg-blue-100 text-blue-800",
-    travel: "bg-amber-100 text-amber-800",
-    rent: "bg-purple-100 text-purple-800",
-    bills: "bg-red-100 text-red-800",
-    education: "bg-green-100 text-green-800",
-    entertainment: "bg-pink-100 text-pink-800",
-    others: "bg-gray-100 text-gray-800"
-  };
-  return map[cat] || "bg-gray-100 text-gray-800";
+    await fetch(
+      `${API_URL}/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    renderExpenses();
+
+    localStorage.setItem(
+      "dashboardUpdated",
+      Date.now()
+    );
+
+  } catch (error) {
+
+    console.log(error);
+
+  }
 }

@@ -1,161 +1,305 @@
-// ================================
-// Budget Page Logic (FINAL FIXED)
-// Uses EXISTING IDs + EXISTING STORAGE
-// ================================
+const API_URL = "http://localhost:5000/api/budget";
 
-document.addEventListener("DOMContentLoaded", () => {
-  renderBudgetPage();
-  bindActions();
+const currentDate = new Date();
+
+const month = currentDate.toLocaleString("default", {
+  month: "long",
 });
 
-// ---------- Storage helpers ----------
-function getData() {
-  return JSON.parse(localStorage.getItem("budgetPlannerData")) || {
-    income: [],
-    expenses: [],
-    budget: {},
-    savings: {}
-  };
+const year = currentDate.getFullYear();
+
+// Inputs
+const budgetInput = document.getElementById("budget-amount");
+const savingsInput = document.getElementById("savings-target");
+
+// Buttons
+const saveBudgetBtn = document.getElementById("saveBudgetBtn");
+const saveSavingsBtn = document.getElementById("saveSavingsBtn");
+
+// Budget UI
+const budgetTotalSpent =
+  document.getElementById("budgetTotalSpent");
+
+const budgetLimit =
+  document.getElementById("budgetLimit");
+
+const budgetProgressBar =
+  document.getElementById("budgetProgressBar");
+
+const budgetUsedPercent =
+  document.getElementById("budgetUsedPercent");
+
+const budgetRemaining =
+  document.getElementById("budgetRemaining");
+
+const budgetAlert =
+  document.getElementById("budgetAlert");
+
+// Savings UI
+const savingsSoFar =
+  document.getElementById("savingsSoFar");
+
+const savingsGoal =
+  document.getElementById("savingsGoal");
+
+const savingsProgressBar =
+  document.getElementById("savingsProgressBar");
+
+const savingsPercent =
+  document.getElementById("savingsPercent");
+
+const savingsRemaining =
+  document.getElementById("savingsRemaining");
+
+// Save Budget
+async function saveBudget() {
+  try {
+    const response = await fetch(`${API_URL}/budget`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        monthly_budget: budgetInput.value || 0,
+        savings_goal: savingsInput.value || 0,
+        month,
+        year,
+      }),
+    });
+
+    await response.json();
+
+    alert("Saved Successfully");
+
+    loadBudget();
+
+  } catch (error) {
+    console.error(error);
+  }
 }
 
-function saveData(data) {
-  localStorage.setItem("budgetPlannerData", JSON.stringify(data));
+// Load Budget
+async function loadBudget() {
+  try {
+    const response = await fetch(
+      `${API_URL}/budget/${month}/${year}`
+    );
+
+    const data = await response.json();
+
+    budgetInput.value =
+      data.monthly_budget || 0;
+
+    savingsInput.value =
+      data.savings_goal || 0;
+
+    updateOverview();
+
+  } catch (error) {
+    console.error(error);
+  }
 }
 
-// ---------- Utilities ----------
-function sum(arr) {
-  return arr.reduce((t, i) => t + Number(i.amount || 0), 0);
-}
+// Update Overview
+async function updateOverview() {
+  try {
 
-// ---------- Main render ----------
-function renderBudgetPage() {
-  const data = getData();
+    // Dashboard Data
+    const dashboardRes = await fetch(
+      `${API_URL}/dashboard`
+    );
 
-  const totalIncome = sum(data.income);
-  const totalExpenses = sum(data.expenses);
+    const dashboardData =
+      await dashboardRes.json();
 
-  // REAL savings (money left)
-  const savings = totalIncome - totalExpenses;
+    const totalIncome =
+      parseFloat(dashboardData.totalIncome) || 0;
 
-  // Budget (planning only)
-  const budgetLimit = Number(data.budget.total || 0);
-  const budgetRemaining = budgetLimit - totalExpenses;
+    const totalExpense =
+      parseFloat(dashboardData.totalExpense) || 0;
 
-  // ---------- Budget Overview ----------
-  const spentEl = document.getElementById("budgetTotalSpent");
-  const limitEl = document.getElementById("budgetLimit");
-  const remainingEl = document.getElementById("budgetRemaining");
-  const percentEl = document.getElementById("budgetUsedPercent");
-  const barEl = document.getElementById("budgetProgressBar");
-  const alertBox = document.getElementById("budgetAlert");
+    const balance =
+      totalIncome - totalExpense;
 
-  if (spentEl) spentEl.textContent = `₹${totalExpenses.toLocaleString()}`;
-  if (limitEl) limitEl.textContent = `₹${budgetLimit.toLocaleString()}`;
+    // Budget Values
+    const monthlyBudget =
+      parseFloat(budgetInput.value) || 0;
 
-  let rawPercent = 0;
-  if (budgetLimit > 0) {
-    rawPercent = (totalExpenses / budgetLimit) * 100;
-  }
+    const savingsTarget =
+      parseFloat(savingsInput.value) || 0;
 
-  const percentUsed = Math.min(rawPercent, 100);
+    // -------------------------
+    // Budget Calculation
+    // -------------------------
 
-  if (percentEl) {
-    percentEl.textContent = `${rawPercent.toFixed(0)}% Used`;
-  }
+    let budgetPercent = 0;
 
-  if (barEl) {
-    barEl.style.width = `${percentUsed}%`;
-  }
-
-  if (remainingEl) {
-    if (budgetLimit === 0) {
-      remainingEl.textContent = "No budget set";
-      remainingEl.classList.remove("text-danger");
-    } else if (budgetRemaining < 0) {
-      remainingEl.textContent = `Over by ₹${Math.abs(budgetRemaining).toLocaleString()}`;
-      remainingEl.classList.add("text-danger");
-    } else {
-      remainingEl.textContent = `₹${budgetRemaining.toLocaleString()}`;
-      remainingEl.classList.remove("text-danger");
+    if (monthlyBudget > 0) {
+      budgetPercent =
+        (totalExpense / monthlyBudget) * 100;
     }
-  }
 
-  // ---------- Budget alert ----------
-  if (alertBox) {
-    if (budgetLimit === 0 || rawPercent < 70) {
-      alertBox.classList.add("hidden");
-    } else if (rawPercent < 100) {
-      alertBox.classList.remove("hidden");
-      alertBox.querySelector("h4").textContent = "Approaching Limit";
-      alertBox.querySelector("p").textContent =
-        `You've used ${rawPercent.toFixed(0)}% of your planned budget.`;
+    const remainingBudget =
+      monthlyBudget - totalExpense;
+
+    // UI Update
+    budgetTotalSpent.textContent =
+      `₹${totalExpense.toLocaleString()}`;
+
+    budgetLimit.textContent =
+      `₹${monthlyBudget.toLocaleString()}`;
+
+    budgetUsedPercent.textContent =
+      `${budgetPercent.toFixed(0)}% Used`;
+
+    // Progress Width
+    const progressWidth =
+      Math.min(budgetPercent, 100);
+
+    budgetProgressBar.style.width =
+      `${progressWidth}%`;
+
+    // Remaining Text
+    if (remainingBudget >= 0) {
+
+      budgetRemaining.textContent =
+        `₹${remainingBudget.toLocaleString()}`;
+
     } else {
-      alertBox.classList.remove("hidden");
-      alertBox.querySelector("h4").textContent = "Over Budget (Planning)";
-      alertBox.querySelector("p").textContent =
-        `You've exceeded your planned budget by ₹${Math.abs(budgetRemaining).toLocaleString()}. This does not affect your actual savings.`;
+
+      budgetRemaining.textContent =
+        `Over by ₹${Math.abs(
+          remainingBudget
+        ).toLocaleString()}`;
     }
-  }
 
-  // ---------- Savings Overview ----------
-  const savedEl = document.getElementById("savingsSoFar");
-  const goalEl = document.getElementById("savingsGoal");
-  const remainSaveEl = document.getElementById("savingsRemaining");
-  const savePercentEl = document.getElementById("savingsPercent");
-  const saveBarEl = document.getElementById("savingsProgressBar");
+    // Alert Logic
+    budgetAlert.classList.remove(
+      "hidden",
+      "bg-red-50",
+      "border-red-200",
+      "bg-amber-50",
+      "border-amber-200"
+    );
 
-  const savingsGoal = Number(data.savings.goal || 0);
-  const savingsRemaining = savingsGoal - savings;
+    if (budgetPercent >= 100) {
 
-  if (savedEl) savedEl.textContent = `₹${Math.max(savings, 0).toLocaleString()}`;
-  if (goalEl) goalEl.textContent = `₹${savingsGoal.toLocaleString()}`;
+      budgetAlert.classList.add(
+        "bg-red-50",
+        "border-red-200"
+      );
 
-  let savePercent = 0;
-  if (savingsGoal > 0) {
-    savePercent = Math.min((savings / savingsGoal) * 100, 100);
-  }
+      budgetAlert.innerHTML = `
+        <div class="flex items-start">
+          <i data-lucide="alert-circle"
+             class="w-5 h-5 text-red-500 mr-3 mt-0.5">
+          </i>
 
-  if (savePercentEl) {
-    savePercentEl.textContent = `${savePercent.toFixed(0)}% Achieved`;
-  }
+          <div>
+            <h4 class="text-sm font-bold text-red-800">
+              Over Budget
+            </h4>
 
-  if (saveBarEl) {
-    saveBarEl.style.width = `${savePercent}%`;
-  }
+            <p class="text-xs text-red-700 mt-1">
+              You exceeded your budget by ₹${Math.abs(
+                remainingBudget
+              ).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      `;
 
-  if (remainSaveEl) {
-    if (savingsGoal === 0) {
-      remainSaveEl.textContent = "No goal set";
+    } else if (budgetPercent >= 75) {
+
+      budgetAlert.classList.add(
+        "bg-amber-50",
+        "border-amber-200"
+      );
+
+      budgetAlert.innerHTML = `
+        <div class="flex items-start">
+          <i data-lucide="alert-triangle"
+             class="w-5 h-5 text-amber-500 mr-3 mt-0.5">
+          </i>
+
+          <div>
+            <h4 class="text-sm font-bold text-amber-800">
+              Approaching Limit
+            </h4>
+
+            <p class="text-xs text-amber-700 mt-1">
+              You have used ${budgetPercent.toFixed(0)}% of your budget.
+            </p>
+          </div>
+        </div>
+      `;
+
     } else {
-      remainSaveEl.textContent = `₹${Math.max(savingsRemaining, 0).toLocaleString()}`;
+
+      budgetAlert.classList.add("hidden");
     }
+
+    // -------------------------
+    // Savings Calculation
+    // -------------------------
+
+    let savingsAchieved = 0;
+
+    if (savingsTarget > 0) {
+
+      savingsAchieved =
+        (balance / savingsTarget) * 100;
+    }
+
+    if (savingsAchieved > 100) {
+      savingsAchieved = 100;
+    }
+
+    const remainingSavings =
+      savingsTarget - balance;
+
+    // Savings UI
+    savingsSoFar.textContent =
+      `₹${balance.toLocaleString()}`;
+
+    savingsGoal.textContent =
+      `₹${savingsTarget.toLocaleString()}`;
+
+    savingsPercent.textContent =
+      `${savingsAchieved.toFixed(0)}% Achieved`;
+
+    savingsProgressBar.style.width =
+      `${savingsAchieved}%`;
+
+    if (remainingSavings > 0) {
+
+      savingsRemaining.textContent =
+        `₹${remainingSavings.toLocaleString()}`;
+
+    } else {
+
+      savingsRemaining.textContent =
+        `Goal Reached`;
+    }
+
+    // Refresh Icons
+    lucide.createIcons();
+
+  } catch (error) {
+    console.error(error);
   }
 }
 
-// ---------- Actions ----------
-function bindActions() {
-  const saveBudgetBtn = document.getElementById("saveBudgetBtn");
-  const saveSavingsBtn = document.getElementById("saveSavingsBtn");
+// Button Events
+saveBudgetBtn.addEventListener(
+  "click",
+  saveBudget
+);
 
-  saveBudgetBtn?.addEventListener("click", () => {
-    const amount = Number(document.getElementById("budget-amount").value);
-    if (!amount || amount <= 0) return alert("Enter a valid budget amount");
+saveSavingsBtn.addEventListener(
+  "click",
+  saveBudget
+);
 
-    const data = getData();
-    data.budget.total = amount;
-    saveData(data);
-
-    renderBudgetPage();
-  });
-
-  saveSavingsBtn?.addEventListener("click", () => {
-    const amount = Number(document.getElementById("savings-target").value);
-    if (!amount || amount <= 0) return alert("Enter a valid savings goal");
-
-    const data = getData();
-    data.savings.goal = amount;
-    saveData(data);
-
-    renderBudgetPage();
-  });
-}
+// Initial Load
+loadBudget();

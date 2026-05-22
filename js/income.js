@@ -1,119 +1,252 @@
-document.addEventListener("DOMContentLoaded", () => {
-  renderIncome();
+const API_URL = "http://localhost:5000/api/income";
 
-  const form = document.getElementById("incomeForm");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      addIncome();
-    });
+// Start
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    renderIncome();
+localStorage.setItem(
+  "dashboardUpdated",
+  Date.now()
+);
+    const form =
+      document.getElementById(
+        "incomeForm"
+      );
+
+    form.addEventListener(
+      "submit",
+      async (e) => {
+
+        e.preventDefault();
+
+        await addIncome();
+
+      }
+    );
   }
-});
+);
 
-function addIncome() {
-  const sourceEl = document.getElementById("incomeSource");
-  const amountEl = document.getElementById("incomeAmount");
-  const dateEl = document.getElementById("incomeDate");
-  const noteEl = document.getElementById("incomeNote");
+// Add Income
+async function addIncome() {
+renderIncome();
 
-  if (!sourceEl || !amountEl || !dateEl) return;
+localStorage.setItem(
+  "dashboardUpdated",
+  Date.now()
+);
+  const source =
+    document.getElementById(
+      "incomeSource"
+    ).value.trim();
 
-  const source = sourceEl.value.trim();
-  const amount = Number(amountEl.value);
-  const date = dateEl.value;
-  const note = noteEl ? noteEl.value.trim() : "";
+  const amount =
+    document.getElementById(
+      "incomeAmount"
+    ).value;
 
-  if (!source || !amount || !date) {
-    alert("Please fill all required fields");
+  const income_date =
+    document.getElementById(
+      "incomeDate"
+    ).value;
+
+  const notes =
+    document.getElementById(
+      "incomeNote"
+    ).value.trim();
+
+  if (
+    !source ||
+    !amount ||
+    !income_date
+  ) {
+
+    alert(
+      "Please fill all fields"
+    );
+
     return;
   }
 
-  const data = getData();
+  try {
 
-  data.income.push({
-    id: Date.now(),
-    source,
-    amount,
-    date,
-    note
-  });
+    await fetch(API_URL, {
 
-  saveData(data);
+      method: "POST",
 
-  document.getElementById("incomeForm").reset();
-  renderIncome();
-}
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
 
-function renderIncome() {
-  const data = getData();
-  const list = document.getElementById("incomeList");
-  const totalEl = document.getElementById("totalIncome");
+      body: JSON.stringify({
 
-  if (!list || !totalEl) return;
+        source,
+        amount,
+        income_date,
+        notes
 
-  list.innerHTML = "";
-  let total = 0;
+      })
 
-  data.income.forEach((item) => {
-    total += item.amount;
+    });
 
-    const initials = item.source
-      .split(" ")
-      .map(w => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    document
+      .getElementById(
+        "incomeForm"
+      )
+      .reset();
 
-    const row = document.createElement("tr");
-    row.className = "hover:bg-white/40 transition-colors border-b border-gray-100";
+    renderIncome();
 
-    row.innerHTML = `
-      <td class="py-4 px-4 text-gray-600">
-        ${item.date}
-      </td>
+  } catch (error) {
 
-      <td class="py-4 px-4">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3 text-xs font-bold">
-            ${initials}
-          </div>
-          <span class="font-medium text-gray-900">
-            ${item.source}
-          </span>
-        </div>
-      </td>
+    console.log(error);
 
-      <td class="py-4 px-4 text-right text-success font-bold">
-        + ₹${item.amount.toLocaleString()}
-      </td>
-
-      <td class="py-4 px-4 text-center">
-        <div class="flex items-center justify-center">
-          <button
-            class="p-1.5 hover:bg-white/80 rounded-md text-gray-500 hover:text-danger transition-colors"
-            onclick="deleteIncome(${item.id})"
-            title="Delete"
-          >
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </td>
-    `;
-
-    list.appendChild(row);
-  });
-
-  totalEl.textContent = `₹${total.toLocaleString()}`;
-
-  // Re-render lucide icons for dynamically added rows
-  if (window.lucide) {
-    lucide.createIcons();
   }
 }
 
-function deleteIncome(id) {
-  const data = getData();
-  data.income = data.income.filter(item => item.id !== id);
-  saveData(data);
-  renderIncome();
+// Render Income
+async function renderIncome() {
+
+  try {
+
+    const response =
+      await fetch(API_URL);
+
+    const incomes =
+      await response.json();
+
+    const incomeList =
+      document.getElementById(
+        "incomeList"
+      );
+
+    const totalIncome =
+      document.getElementById(
+        "totalIncome"
+      );
+
+    incomeList.innerHTML = "";
+
+    let total = 0;
+
+    if (incomes.length === 0) {
+
+      incomeList.innerHTML = `
+        <tr>
+          <td colspan="4"
+            class="py-6 text-center text-gray-500">
+
+            No Income Added
+
+          </td>
+        </tr>
+      `;
+
+      totalIncome.textContent =
+        "₹0";
+
+      return;
+    }
+
+    incomes.forEach(item => {
+
+      total += Number(
+        item.amount
+      );
+
+      const initials =
+        item.source
+          .split(" ")
+          .map(word =>
+            word[0]
+          )
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+
+      incomeList.innerHTML += `
+        <tr class="hover:bg-white/40 transition-colors border-b border-gray-100">
+
+          <td class="py-4 px-4 text-gray-600">
+            ${new Date(
+              item.income_date
+            ).toLocaleDateString()}
+          </td>
+
+          <td class="py-4 px-4">
+
+            <div class="flex items-center">
+
+              <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3 text-xs font-bold">
+
+                ${initials}
+
+              </div>
+
+              <span class="font-medium text-gray-900">
+                ${item.source}
+              </span>
+
+            </div>
+
+          </td>
+
+          <td class="py-4 px-4 text-right text-success font-bold">
+            + ₹${Number(
+              item.amount
+            ).toLocaleString()}
+          </td>
+
+          <td class="py-4 px-4 text-center">
+
+            <button
+              onclick="deleteIncome(${item.id})"
+              class="text-red-500 hover:text-red-700">
+
+              Delete
+
+            </button>
+
+          </td>
+
+        </tr>
+      `;
+    });
+
+    totalIncome.textContent =
+      `₹${total.toLocaleString()}`;
+
+  } catch (error) {
+
+    console.log(error);
+
+  }
+}
+
+// Delete Income
+async function deleteIncome(id) {
+renderIncome();
+
+localStorage.setItem(
+  "dashboardUpdated",
+  Date.now()
+);
+  try {
+
+    await fetch(
+      `${API_URL}/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    renderIncome();
+
+  } catch (error) {
+
+    console.log(error);
+
+  }
 }
