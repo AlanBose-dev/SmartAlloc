@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/reports";
+const API_URL = "https://smartalloc.onrender.com/api/reports";
 
 let expenseChartInstance = null;
 let trendChartInstance = null;

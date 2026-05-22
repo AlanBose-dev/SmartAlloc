@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/dashboard";
+const API_URL = "https://smartalloc.onrender.com/api/dashboard";
 
 const currentDate = new Date();
 
@@ -14,13 +14,13 @@ async function loadDashboard() {
   try {
 
     // Dashboard API
-    const dashboardRes = await fetch("http://localhost:5000/api/dashboard")
+    const dashboardRes = await fetch("https://smartalloc.onrender.com/api/dashboard")
 
     const dashboardData =
       await dashboardRes.json();
 
     // Budget API
-    const budgetRes = await fetch(`http://localhost:5000/api/budget/${month}/${year}`)
+    const budgetRes = await fetch(`https://smartalloc.onrender.com/api/budget/${month}/${year}`)
 
     const budgetData =
       await budgetRes.json();
@@ -225,9 +225,9 @@ async function loadRecentTransactions() {
 
   try {
 
-    const incomeRes = await fetch("http://localhost:5000/api/income")
+    const incomeRes = await fetch("https://smartalloc.onrender.com/api/income")
 
-    const expenseRes = await fetch("http://localhost:5000/api/expenses")
+    const expenseRes = await fetch("https://smartalloc.onrender.com/api/expenses")
 
     const incomes =
       await incomeRes.json();

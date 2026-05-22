@@ -1,5 +1,5 @@
 const API_URL =
-  "http://localhost:5000/api/expenses";
+  "https://smartalloc.onrender.com/api/expenses";
 
 // Start
 document.addEventListener(

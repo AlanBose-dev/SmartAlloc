@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/budget";
+const API_URL = "https://smartalloc.onrender.com/api/budget";
 
 const currentDate = new Date();
 
