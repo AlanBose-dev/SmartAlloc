@@ -38,10 +38,7 @@ function bindExpenseForm() {
 // Add Expense
 async function addExpense() {
 
-  const category =
-    document.getElementById(
-      "expense-category"
-    ).value.trim();
+  
 
   const amount =
     document.getElementById(
