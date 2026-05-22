@@ -3,21 +3,48 @@ const router = express.Router();
 const pool = require("../db");
 
 router.post("/", async (req, res) => {
+
   try {
-const { category, amount, expense_date, notes } = req.body;
-    const newExpense = await pool.query(
-      `
-      INSERT INTO expenses (category, amount, expense_date, notes)
-      VALUES ($1, $2, $3, $4, $5)
+
+    const {
+      category,
+      amount,
+      expense_date,
+      notes
+    } = req.body;
+
+    const result = await pool.query(
+
+      `INSERT INTO expenses
+      (category, amount, expense_date, notes)
+
+      VALUES ($1, $2, $3, $4)
+
       RETURNING *`,
-      [title, category, amount, expense_date, notes]
+
+      [
+        category,
+        amount,
+        expense_date,
+        notes
+      ]
+
     );
 
-    res.json(newExpense.rows[0]);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send("Server Error");
+    res.status(201).json(
+      result.rows[0]
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    res
+      .status(500)
+      .send("Server Error");
+
   }
+
 });
 router.get("/", async (req, res) => {
   try {
