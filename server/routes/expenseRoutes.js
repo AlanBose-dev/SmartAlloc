@@ -4,11 +4,10 @@ const pool = require("../db");
 
 router.post("/", async (req, res) => {
   try {
-    const { title, category, amount, expense_date, notes } = req.body;
-
+const { category, amount, expense_date, notes } = req.body;
     const newExpense = await pool.query(
-      `INSERT INTO expenses 
-      (title, category, amount, expense_date, notes)
+      `
+      INSERT INTO expenses (category, amount, expense_date, notes)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *`,
       [title, category, amount, expense_date, notes]
