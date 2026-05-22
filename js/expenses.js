@@ -38,8 +38,6 @@ function bindExpenseForm() {
 // Add Expense
 async function addExpense() {
 
-  
-
   const amount =
     document.getElementById(
       "expense-amount"
@@ -61,7 +59,6 @@ async function addExpense() {
     ).value;
 
   if (
-
     !amount ||
     !category ||
     !expense_date
@@ -76,25 +73,34 @@ async function addExpense() {
 
   try {
 
-    await fetch(API_URL, {
+    const response =
+      await fetch(API_URL, {
 
-      method: "POST",
+        method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-      body: JSON.stringify({
+        body: JSON.stringify({
 
-        category,
-        amount,
-        expense_date,
-        notes
+          category,
+          amount,
+          expense_date,
+          notes
 
-      })
+        })
 
-    });
+      });
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Failed to add expense"
+      );
+
+    }
 
     document
       .getElementById(
@@ -102,7 +108,7 @@ async function addExpense() {
       )
       .reset();
 
-    renderExpenses();
+    await renderExpenses();
 
     localStorage.setItem(
       "dashboardUpdated",
@@ -145,7 +151,7 @@ async function renderExpenses() {
 
       tbody.innerHTML = `
         <tr>
-          <td colspan="5"
+          <td colspan="4"
             class="py-6 text-center text-gray-500">
 
             No Expenses Added
@@ -155,33 +161,40 @@ async function renderExpenses() {
       `;
 
       totalEl.textContent =
-        "₹0";
+        "₹0.00";
 
       return;
     }
 
     expenses.forEach(exp => {
 
-      total += Math.round(Number(exp.amount));
+      total +=
+        Number(exp.amount);
 
       tbody.innerHTML += `
+
         <tr class="hover:bg-white/40 transition-colors border-b border-gray-100">
 
           <td class="py-4 px-4 text-gray-600">
+
             ${new Date(
               exp.expense_date
             ).toLocaleDateString()}
+
           </td>
 
           <td class="py-4 px-4 font-medium text-gray-900">
+
             ${exp.category}
+
           </td>
 
-         
           <td class="py-4 px-4 text-right font-semibold text-gray-900">
+
             ₹${Number(
               exp.amount
             ).toFixed(2)}
+
           </td>
 
           <td class="py-4 px-4 text-center">
@@ -197,11 +210,13 @@ async function renderExpenses() {
           </td>
 
         </tr>
+
       `;
     });
 
     totalEl.textContent =
-  `₹${total.toFixed(2)}`;
+      `₹${total.toFixed(2)}`;
+
   } catch (error) {
 
     console.log(error);
@@ -214,14 +229,23 @@ async function deleteExpense(id) {
 
   try {
 
-    await fetch(
-      `${API_URL}/${id}`,
-      {
-        method: "DELETE"
-      }
-    );
+    const response =
+      await fetch(
+        `${API_URL}/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
 
-    renderExpenses();
+    if (!response.ok) {
+
+      throw new Error(
+        "Failed to delete expense"
+      );
+
+    }
+
+    await renderExpenses();
 
     localStorage.setItem(
       "dashboardUpdated",
