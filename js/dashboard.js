@@ -240,14 +240,14 @@ async function loadRecentTransactions() {
       type: "Income",
       category: item.source,
       amount: item.amount,
-      date: item.date,
+      income_date: item.date,
     }));
 
     const expenseData = expenses.map(item => ({
       type: "Expense",
       category: item.category,
       amount: item.amount,
-      date: item.date,
+      expense_date: item.date,
     }));
 
     // Merge + Sort
